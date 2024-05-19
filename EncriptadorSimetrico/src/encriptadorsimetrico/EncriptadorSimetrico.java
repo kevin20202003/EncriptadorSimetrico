@@ -1,170 +1,112 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package encriptadorsimetrico;
 
-/*
- * Este es un programa de ejemplo que implementa un encriptador y desencriptador simétrico utilizando el algoritmo AES.
- * Proporciona una interfaz gráfica de usuario para ingresar texto, una clave y realizar operaciones de encriptación y desencriptación.
- */
-
-// Importaciones de clases necesarias
-import javax.swing.*;
-import java.awt.event.*;
-import java.security.*;
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
+import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.Base64;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import javax.swing.JOptionPane;
 
-// Definición de la clase principal que extiende JFrame (ventana)
-public class EncriptadorSimetrico extends JFrame {
-    // Declaración de componentes de la interfaz de usuario
-    private JTextField claveTextField;
-    private JTextArea textoEntradaTextArea;
-    private JTextArea textoSalidaTextArea;
-    private JButton encriptarButton;
-    private JButton desencriptarButton;
+public class EncriptadorSimetrico {
+    
+    // La llave para encriptar/desencriptar será introducida por el usuario
+    String LLAVE;
 
-    // Constantes para el algoritmo de encriptación
-    private static final String ALGORITHM = "AES";
-    private static final int KEY_SIZE = 128;
-
-    // Constructor de la clase
-    public EncriptadorSimetrico() {
-        initComponents(); // Método para inicializar los componentes de la interfaz
+    public static void main(String[] args) {
+        String encriptada = "";
+        String aEnccriptar = "";
+        
+        // Crear una instancia de la clase EncriptadorSimetrico
+        EncriptadorSimetrico main = new EncriptadorSimetrico();
+        
+        // Solicitar al usuario la cadena a encriptar
+        aEnccriptar = JOptionPane.showInputDialog("Ingresa la cadena a encriptar: ");
+        
+        // Solicitar al usuario la llave de encriptación
+        main.LLAVE = JOptionPane.showInputDialog("Ingresa la llave de encriptación: ");
+        
+        // Encriptar la cadena ingresada
+        encriptada = main.Encriptar(aEnccriptar);
+        
+        // Mostrar la cadena encriptada
+        JOptionPane.showMessageDialog(null, encriptada);
+        
+        // Desencriptar la cadena encriptada y mostrarla
+        JOptionPane.showMessageDialog(null, main.Desencriptar(encriptada));
     }
 
-    // Método para inicializar los componentes de la interfaz de usuario
-    private void initComponents() {
-        // Creación de los componentes
-        claveTextField = new JTextField();
-        textoEntradaTextArea = new JTextArea();
-        textoSalidaTextArea = new JTextArea();
-        encriptarButton = new JButton("Encriptar");
-        desencriptarButton = new JButton("Desencriptar");
-
-        // Configuración de la ventana principal
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setTitle("Encriptador y Desencriptador");
-
-        // Creación de paneles con barras de desplazamiento para las áreas de texto
-        JScrollPane scrollPaneEntrada = new JScrollPane();
-        JScrollPane scrollPaneSalida = new JScrollPane();
-
-        // Configuración de los paneles con las áreas de texto
-        scrollPaneEntrada.setViewportView(textoEntradaTextArea);
-        scrollPaneSalida.setViewportView(textoSalidaTextArea);
-
-        // Adición de acciones a los botones de encriptar y desencriptar
-        encriptarButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                encriptarButtonActionPerformed(evt);
-            }
-        });
-
-        desencriptarButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                desencriptarButtonActionPerformed(evt);
-            }
-        });
-
-        // Configuración del diseño de la ventana utilizando GroupLayout
-        GroupLayout layout = new GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                    .addComponent(scrollPaneEntrada)
-                    .addComponent(scrollPaneSalida)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(claveTextField, GroupLayout.PREFERRED_SIZE, 200, GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(encriptarButton)
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(desencriptarButton)
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                    .addComponent(claveTextField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                    .addComponent(encriptarButton)
-                    .addComponent(desencriptarButton))
-                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(scrollPaneEntrada, GroupLayout.PREFERRED_SIZE, 150, GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(scrollPaneSalida, GroupLayout.PREFERRED_SIZE, 150, GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        // Ajuste automático del tamaño de la ventana
-        pack();
-    }
-
-    // Método para la acción del botón de encriptar
-    private void encriptarButtonActionPerformed(ActionEvent evt) {
-        String textoEntrada = textoEntradaTextArea.getText();
-        String clave = claveTextField.getText();
+    // Método para crear la clave de encriptación/desencriptación a partir de la llave ingresada
+    public SecretKeySpec CrearCalve(String llave) {
         try {
-            String textoEncriptado = encrypt(textoEntrada, clave);
-            textoSalidaTextArea.setText(textoEncriptado);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error al encriptar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            // Convertir la llave a un arreglo de bytes en formato UTF-8
+            byte[] cadena = llave.getBytes("UTF-8");
+            
+            // Crear un MessageDigest para SHA-1
+            MessageDigest md = MessageDigest.getInstance("SHA-1");
+            
+            // Obtener el hash de la llave
+            cadena = md.digest(cadena);
+            
+            // Tomar los primeros 16 bytes del hash para crear la clave AES
+            cadena = Arrays.copyOf(cadena, 16);
+            
+            // Crear y retornar el SecretKeySpec para AES
+            SecretKeySpec secretKeySpec = new SecretKeySpec(cadena, "AES");
+            return secretKeySpec;
+        } catch (Exception e) {
+            return null;
         }
     }
 
-    // Método para la acción del botón de desencriptar
-    private void desencriptarButtonActionPerformed(ActionEvent evt) {
-        String textoEncriptado = textoEntradaTextArea.getText();
-        String clave = claveTextField.getText();
+    // Método para encriptar una cadena
+    public String Encriptar(String encriptar) {
         try {
-            String textoDesencriptado = decrypt(textoEncriptado, clave);
-            textoSalidaTextArea.setText(textoDesencriptado);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error al desencriptar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            // Crear la clave de encriptación
+            SecretKeySpec secretKeySpec = CrearCalve(LLAVE);
+            
+            // Obtener una instancia de Cipher para AES
+            Cipher cipher = Cipher.getInstance("AES");
+            
+            // Inicializar el cipher en modo de encriptación con la clave
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
+            
+            // Convertir la cadena a bytes en formato UTF-8
+            byte[] cadena = encriptar.getBytes("UTF-8");
+            
+            // Encriptar los bytes de la cadena
+            byte[] encriptada = cipher.doFinal(cadena);
+            
+            // Codificar los bytes encriptados en Base64 y retornar como cadena
+            String cadena_encriptada = Base64.getEncoder().encodeToString(encriptada);
+            return cadena_encriptada;
+        } catch (Exception e) {
+            return "";
         }
     }
 
-    // Método para encriptar el texto utilizando AES
-    private String encrypt(String plainText, String key) throws Exception {
-        Key secretKey = generateKey(key);
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-        byte[] encryptedBytes = cipher.doFinal(plainText.getBytes());
-        return Base64.getEncoder().encodeToString(encryptedBytes);
-    }
-
-    // Método para desencriptar el texto utilizando AES
-    private String decrypt(String encryptedText, String key) throws Exception {
-        Key secretKey = generateKey(key);
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey);
-        byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedText));
-        return new String(decryptedBytes);
-    }
-
-    // Método para generar una clave utilizando la clave proporcionada por el usuario
-    private Key generateKey(String key) throws Exception {
-        byte[] keyValue = key.getBytes();
-        SecretKeySpec secretKeySpec = new SecretKeySpec(keyValue, ALGORITHM);
-        return secretKeySpec;
-    }
-
-    // Método principal para iniciar la aplicación
-    public static void main(String args[]) {
-        // Se ejecuta la aplicación en el hilo de eventos de la interfaz de usuario
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new EncriptadorSimetrico().setVisible(true);
-            }
-        });
+    // Método para desencriptar una cadena
+    public String Desencriptar(String desencriptar) {
+        try {
+            // Crear la clave de desencriptación
+            SecretKeySpec secretKeySpec = CrearCalve(LLAVE);
+            
+            // Obtener una instancia de Cipher para AES
+            Cipher cipher = Cipher.getInstance("AES");
+            
+            // Inicializar el cipher en modo de desencriptación con la clave
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
+            
+            // Decodificar la cadena en Base64 a bytes
+            byte[] cadena = Base64.getDecoder().decode(desencriptar);
+            
+            // Desencriptar los bytes
+            byte[] desencriptacion = cipher.doFinal(cadena);
+            
+            // Convertir los bytes desencriptados a cadena y retornar
+            String cadena_desencriptada = new String(desencriptacion);
+            return cadena_desencriptada;
+        } catch (Exception e) {
+            return "";
+        }
     }
 }
-
